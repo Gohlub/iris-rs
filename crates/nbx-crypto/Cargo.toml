@@ -1,9 +1,13 @@
 [package]
-name = "nbx-wallet"
+name = "nbx-crypto"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
-nbx-crypto = { workspace = true }
 nockchain-math = { workspace = true }
 ibig = { workspace = true }
+bip39 = "2.0"
+argon2 = "0.5"
+hmac = "0.12"
+sha2 = "0.10"
+bs58 = "0.5"

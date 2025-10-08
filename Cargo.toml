@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "crates/nbx-wallet",
+  "crates/nbx-crypto",
 ]
 
 resolver = "2"
@@ -11,6 +12,9 @@ edition = "2021"
 
 [workspace.dependencies.nbx-wallet]
 path = "crates/nbx-wallet"
+
+[workspace.dependencies.nbx-crypto]
+path = "crates/nbx-crypto"
 
 [workspace.dependencies]
 nockvm = { git = "https://github.com/zorp-corp/nockchain.git" }

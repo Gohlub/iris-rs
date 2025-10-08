@@ -3,7 +3,7 @@ use ibig::UBig;
 use nockchain_math::crypto::cheetah::{ch_add, ch_scal_big, A_GEN, G_ORDER};
 use sha2::Sha512;
 
-use crate::keystore::{PrivateKey, PublicKey};
+use crate::cheetah::{PrivateKey, PublicKey};
 
 fn hmac_sha512(key: &[u8], data: &[u8]) -> [u8; 64] {
     let mut mac = Hmac::<Sha512>::new_from_slice(key).unwrap();

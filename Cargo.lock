@@ -2190,7 +2190,7 @@ version = "0.5.2"
 source = "git+https://github.com/zorp-corp/nockchain.git#865a6f70b0bb8c44989839f19b288587c5c37b17"
 
 [[package]]
-name = "nbx-wallet"
+name = "nbx-crypto"
 version = "0.1.0"
 dependencies = [
  "argon2",
@@ -2199,8 +2199,16 @@ dependencies = [
  "hmac",
  "ibig",
  "nockchain-math",
- "pbkdf2",
  "sha2",
+]
+
+[[package]]
+name = "nbx-wallet"
+version = "0.1.0"
+dependencies = [
+ "ibig",
+ "nbx-crypto",
+ "nockchain-math",
 ]
 
 [[package]]
@@ -2630,16 +2638,6 @@ name = "pathdiff"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
-
-[[package]]
-name = "pbkdf2"
-version = "0.12.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8ed6a7761f76e3b9f92dfb0a60a6a6477c61024b775147ff0973a02653abaf2"
-dependencies = [
- "digest",
- "hmac",
-]
 
 [[package]]
 name = "pem"
