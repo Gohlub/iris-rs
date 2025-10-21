@@ -1,3 +1,4 @@
+pub mod hashable;
 
 pub struct ZMap {
 

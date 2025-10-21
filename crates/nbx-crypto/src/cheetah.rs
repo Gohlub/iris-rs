@@ -4,16 +4,14 @@ use nbx_nockchain_math::{
     crypto::cheetah::{
         ch_add, ch_neg, ch_scal_big, trunc_g_order, CheetahPoint, F6lt, A_GEN, G_ORDER,
     },
-    tip5::hash::hash_varlen,
+    tip5::hash::{hash_varlen, Digest},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PublicKey(pub CheetahPoint);
 
 impl PublicKey {
-    pub fn verify(&self, m: &[u64; 5], sig: &Signature) -> bool {
-        let m_list: Vec<Belt> = m.iter().map(|&x| Belt(x)).collect();
-
+    pub fn verify(&self, m: &Digest, sig: &Signature) -> bool {
         if sig.c == UBig::from(0u64)
             || sig.c >= *G_ORDER
             || sig.s == UBig::from(0u64)
@@ -42,8 +40,8 @@ impl PublicKey {
             transcript.extend_from_slice(&scalar.y.0);
             transcript.extend_from_slice(&self.0.x.0);
             transcript.extend_from_slice(&self.0.y.0);
-            transcript.extend_from_slice(&m_list);
-            trunc_g_order(&hash_varlen(&mut transcript))
+            transcript.extend(&m.0);
+            trunc_g_order(&hash_varlen(&mut transcript).0.map(|b| b.0))
         };
 
         chal == sig.c
@@ -119,16 +117,14 @@ impl PrivateKey {
         PublicKey(ch_scal_big(&self.0, &A_GEN).unwrap())
     }
 
-    // sign 5 belts (message digest)
-    pub fn sign(&self, m: &[u64; 5]) -> Signature {
-        let m_list: Vec<Belt> = m.iter().map(|&x| Belt(x)).collect();
+    pub fn sign(&self, m: &Digest) -> Signature {
         let pubkey = self.derive_public_key().0;
         let nonce = {
             let mut transcript = Vec::new();
             transcript.extend_from_slice(&pubkey.x.0);
             transcript.extend_from_slice(&pubkey.y.0);
-            transcript.extend_from_slice(&m_list);
-            trunc_g_order(&hash_varlen(&mut transcript))
+            transcript.extend(&m.0);
+            trunc_g_order(&hash_varlen(&mut transcript).0.map(|b| b.0))
         };
         let chal = {
             // scalar = nonce * G
@@ -138,8 +134,8 @@ impl PrivateKey {
             transcript.extend_from_slice(&scalar.y.0);
             transcript.extend_from_slice(&pubkey.x.0);
             transcript.extend_from_slice(&pubkey.y.0);
-            transcript.extend_from_slice(&m_list);
-            trunc_g_order(&hash_varlen(&mut transcript))
+            transcript.extend(&m.0);
+            trunc_g_order(&hash_varlen(&mut transcript).0.map(|b| b.0))
         };
         let sig = (&nonce + &chal * &self.0) % &*G_ORDER;
         Signature { c: chal, s: sig }
@@ -164,31 +160,31 @@ mod tests {
     #[test]
     fn test_sign_and_verify() {
         let priv_key = PrivateKey(UBig::from(123u64));
-        let message = [1, 2, 3, 4, 5];
-        let signature = priv_key.sign(&message);
+        let digest = Digest([Belt(1), Belt(2), Belt(3), Belt(4), Belt(5)]);
+        let signature = priv_key.sign(&digest);
         let pubkey = priv_key.derive_public_key();
         assert!(
-            pubkey.verify(&message, &signature),
+            pubkey.verify(&digest, &signature),
             "Signature verification failed!"
         );
 
-        // Corrupting message, signature, or pubkey should all cause failure
-        let mut wrong_message = message.clone();
-        wrong_message[0] = 0;
+        // Corrupting digest, signature, or pubkey should all cause failure
+        let mut wrong_digest = digest.clone();
+        wrong_digest.0[0] = Belt(0);
         assert!(
-            !pubkey.verify(&wrong_message, &signature),
-            "Should reject wrong message"
+            !pubkey.verify(&wrong_digest, &signature),
+            "Should reject wrong digest"
         );
         let mut wrong_sig = signature.clone();
         wrong_sig.s += UBig::from(1u64);
         assert!(
-            !pubkey.verify(&message, &wrong_sig),
+            !pubkey.verify(&digest, &wrong_sig),
             "Should reject wrong signature"
         );
         let mut wrong_pubkey = pubkey.clone();
         wrong_pubkey.0.x.0[0].0 += 1;
         assert!(
-            !wrong_pubkey.verify(&message, &signature),
+            !wrong_pubkey.verify(&digest, &signature),
             "Should reject wrong public key"
         );
     }
@@ -196,7 +192,7 @@ mod tests {
     #[test]
     fn test_vector() {
         // from nockchain zkvm-jetpack cheetah_jets.rs test_batch_verify_affine
-        let message = [8, 9, 10, 11, 12];
+        let digest = Digest([Belt(8), Belt(9), Belt(10), Belt(11), Belt(12)]);
         let pubkey = PublicKey(CheetahPoint {
             x: F6lt([
                 Belt(2754611494552410273),
@@ -222,6 +218,6 @@ mod tests {
             c: UBig::from_str_radix(c_hex, 16).unwrap(),
             s: UBig::from_str_radix(s_hex, 16).unwrap(),
         };
-        assert!(pubkey.verify(&message, &signature));
+        assert!(pubkey.verify(&digest, &signature));
     }
 }

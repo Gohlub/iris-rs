@@ -110,13 +110,9 @@ mod tests {
     use bip39::Mnemonic;
 
     use nbx_nockchain_math::{
-        tip5::hash::{digest_to_bytes, hash_belt_list, hash_varlen},
+        tip5::hash::{digest_to_bytes, from_b58, hash_belt_list, hash_varlen, Digest},
         Belt,
     };
-
-    fn from_b58(s: &str) -> Vec<u8> {
-        bs58::decode(s).into_vec().unwrap()
-    }
 
     #[test]
     fn test_nockchain_wallet_vector() {
@@ -171,7 +167,7 @@ mod tests {
         belts
     }
 
-    fn hash_signature(sig: &Signature) -> [u64; 5] {
+    fn hash_signature(sig: &Signature) -> Digest {
         let mut belts = Vec::with_capacity(1 + 16 + 16);
         belts.push(Belt(16));
         belts.extend(bytes_to_belts(&sig.c.to_le_bytes()));
