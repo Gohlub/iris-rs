@@ -1,4 +1,3 @@
-use alloc::boxed::Box;
 use alloc::{vec, vec::Vec};
 
 use crate::belt::{Belt, PRIME};
@@ -86,38 +85,87 @@ pub fn hash_hash_list(input: &[Digest]) -> Digest {
     hash_noun(&leaves, &dyck)
 }
 
-/// Hashable DSL for tip5 hashing
-#[derive(Debug, Clone)]
-pub enum Hashable {
-    Leaf(Belt),
-    Hash(Digest),
-    List(Vec<Hashable>),
-    Cell(Box<Hashable>, Box<Hashable>),
+pub trait Hashable {
+    fn hash(&self) -> Digest;
 }
 
-impl Hashable {
-    pub fn leaf(u: u64) -> Self {
-        Hashable::Leaf(Belt(u))
+impl Hashable for Belt {
+    fn hash(&self) -> Digest {
+        hash_belt(*self)
     }
+}
 
-    pub fn cell(left: Hashable, right: Hashable) -> Self {
-        Hashable::Cell(Box::new(left), Box::new(right))
+impl<A: Hashable, B: Hashable> Hashable for (A, B) {
+    fn hash(&self) -> Digest {
+        let mut belts = Vec::<Belt>::with_capacity(10);
+        belts.extend_from_slice(&self.0.hash().0);
+        belts.extend_from_slice(&self.1.hash().0);
+        Digest(hash_fixed(&mut belts).map(|u| Belt(u)))
     }
+}
 
-    pub fn hash(&self) -> Digest {
+impl Hashable for u64 {
+    fn hash(&self) -> Digest {
+        Belt(*self).hash()
+    }
+}
+
+impl Hashable for usize {
+    fn hash(&self) -> Digest {
+        (*self as u64).hash()
+    }
+}
+
+impl Hashable for i32 {
+    fn hash(&self) -> Digest {
+        (*self as u64).hash()
+    }
+}
+
+impl Hashable for bool {
+    fn hash(&self) -> Digest {
+        (if *self { 1 } else { 0 }).hash()
+    }
+}
+
+impl Hashable for Digest {
+    fn hash(&self) -> Digest {
+        *self
+    }
+}
+
+impl<T: Hashable> Hashable for &T {
+    fn hash(&self) -> Digest {
+        (**self).hash()
+    }
+}
+
+impl<T: Hashable> Hashable for Option<T> {
+    fn hash(&self) -> Digest {
         match self {
-            Hashable::Hash(h) => *h,
-            Hashable::Leaf(belt) => hash_belt(*belt),
-            Hashable::List(elements) => {
-                hash_hash_list(&mut elements.into_iter().map(|e| e.hash()).collect::<Vec<_>>())
-            }
-            Hashable::Cell(l, r) => {
-                let mut belts = Vec::<Belt>::with_capacity(10);
-                belts.extend_from_slice(&l.hash().0);
-                belts.extend_from_slice(&r.hash().0);
-                Digest(hash_fixed(&mut belts).map(|u| Belt(u)))
-            }
+            None => 0.hash(),
+            Some(v) => (&0, v).hash(),
         }
+    }
+}
+
+impl<T: Hashable> Hashable for &[T] {
+    fn hash(&self) -> Digest {
+        fn build_tree<T: Hashable>(items: &[T], i: usize) -> Digest {
+            if i >= items.len() {
+                return 0.hash();
+            }
+            let left_tree = build_tree(items, i * 2 + 1);
+            let right_tree = build_tree(items, i * 2 + 2);
+            ((&items[i], left_tree), right_tree).hash()
+        }
+        build_tree(self, 0)
+    }
+}
+
+impl<T: Hashable> Hashable for Vec<T> {
+    fn hash(&self) -> Digest {
+        hash_hash_list(&mut self.iter().map(|e| e.hash()).collect::<Vec<_>>())
     }
 }
 
@@ -127,22 +175,16 @@ mod tests {
 
     #[test]
     fn test_hashable_vectors() {
-        let leaf = Hashable::Leaf(Belt(42));
         assert_eq!(
-            to_b58(&leaf.hash().to_bytes()),
+            to_b58(&42.hash().to_bytes()),
             "mhVFxh4yzHZWzLENL4FDu6WKynrgcyx3p6kJbJ9Cg7m9DPbSEvZMMf".as_bytes(),
         );
-        let cell = Hashable::cell(Hashable::Leaf(Belt(42)), Hashable::Leaf(Belt(69)));
         assert_eq!(
-            to_b58(&cell.hash().to_bytes()),
+            to_b58(&(42, 69).hash().to_bytes()),
             "4D62tFybemZW3YX4w16jFwT5pNUaGgYz3zyx32wMsuwtrZuYUnNCeGQ".as_bytes(),
         );
-        let mut list = Vec::new();
-        list.push(Hashable::Leaf(Belt(42)));
-        list.push(Hashable::Leaf(Belt(69)));
-        list.push(Hashable::Leaf(Belt(88)));
         assert_eq!(
-            to_b58(&Hashable::List(list).hash().to_bytes()),
+            to_b58(&vec![42, 69, 88].hash().to_bytes()),
             "uANkACbninAKJgsKMr2jKaP2Qskqfvpbk2agiB45VDq8sxXf7NW9eT".as_bytes(),
         );
     }

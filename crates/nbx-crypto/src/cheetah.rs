@@ -4,7 +4,7 @@ use nbx_ztd::{
         ch_add, ch_neg, ch_scal_big, trunc_g_order, CheetahPoint, F6lt, A_GEN, G_ORDER,
     },
     tip5::hash::hash_varlen,
-    Belt, Digest,
+    Belt, Digest, Hashable,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -98,6 +98,15 @@ impl PublicKey {
             y: F6lt(y),
             inf: false,
         })
+    }
+}
+
+impl Hashable for PublicKey {
+    fn hash(&self) -> Digest {
+        let mut belts = Vec::new();
+        belts.extend_from_slice(&self.0.y.0);
+        belts.extend_from_slice(&self.0.x.0);
+        Digest(hash_varlen(&mut belts).map(|u| Belt(u)))
     }
 }
 
