@@ -16,14 +16,25 @@ pub struct Seed {
 }
 
 impl Seed {
-    fn sig_hash(&self) -> Digest {
+    pub fn new_single_pkh(pkh: Digest, gift: Nicks, parent_hash: Digest) -> Self {
+        let lock_root = SpendCondition::new_pkh(Pkh::single(pkh)).hash();
+        let note_data = NoteData(Pkh::single(pkh));
+        Self {
+            lock_root,
+            note_data,
+            gift,
+            parent_hash,
+        }
+    }
+
+    pub fn sig_hash(&self) -> Digest {
         // NOTE: we assume output-source=~
         (&Option::<Source>::None, &self).hash()
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct Seeds(Vec<Seed>);
+pub struct Seeds(pub Vec<Seed>);
 
 impl Seeds {
     fn sig_hash(&self) -> Digest {
@@ -45,9 +56,9 @@ impl NounHashable for Seeds {
 
 #[derive(Debug, Clone, NounHashable)]
 pub struct Spend {
-    witness: Witness,
-    seeds: Seeds,
-    fee: Nicks,
+    pub witness: Witness,
+    pub seeds: Seeds,
+    pub fee: Nicks,
 }
 
 impl Spend {
@@ -75,7 +86,7 @@ impl HashableTrait for Spend {
 }
 
 #[derive(Debug, Clone)]
-struct PkhSignature(Vec<(PublicKey, Signature)>);
+pub struct PkhSignature(Vec<(PublicKey, Signature)>);
 
 impl HashableTrait for PkhSignature {
     fn hash(&self) -> Digest {
@@ -91,8 +102,8 @@ impl NounHashable for PkhSignature {
 
 #[derive(Debug, Clone, NounHashable)]
 pub struct Witness {
-    lock_merkle_proof: LockMerkleProof,
-    pkh_signature: PkhSignature,
+    pub lock_merkle_proof: LockMerkleProof,
+    pub pkh_signature: PkhSignature,
 }
 
 impl Witness {
@@ -123,10 +134,10 @@ impl HashableTrait for Witness {
 }
 
 #[derive(Debug, Clone, NounHashable)]
-struct LockMerkleProof {
-    spend_condition: SpendCondition,
-    axis: u64,
-    proof: MerkleProof,
+pub struct LockMerkleProof {
+    pub spend_condition: SpendCondition,
+    pub axis: u64,
+    pub proof: MerkleProof,
 }
 
 impl HashableTrait for LockMerkleProof {
@@ -139,13 +150,19 @@ impl HashableTrait for LockMerkleProof {
 }
 
 #[derive(Debug, Clone, Hashable, NounHashable)]
-struct MerkleProof {
+pub struct MerkleProof {
     root: Digest,
     path: Vec<Digest>,
 }
 
 #[derive(Debug, Clone, Hashable, NounHashable)]
-pub struct SpendCondition(Vec<LockPrimitive>);
+pub struct SpendCondition(pub Vec<LockPrimitive>);
+
+impl SpendCondition {
+    pub fn new_pkh(pkh: Pkh) -> Self {
+        SpendCondition(vec![LockPrimitive::Pkh(pkh)])
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum LockPrimitive {
@@ -179,8 +196,20 @@ impl HashableTrait for LockPrimitive {
 
 #[derive(Debug, Clone, NounHashable, Hashable)]
 pub struct LockTim {
-    rel: TimelockRange,
-    abs: TimelockRange,
+    pub rel: TimelockRange,
+    pub abs: TimelockRange,
+}
+
+impl LockTim {
+    pub fn coinbase() -> Self {
+        Self {
+            rel: TimelockRange {
+                min: Some(100.into()),
+                max: None,
+            },
+            abs: TimelockRange::none(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, NounHashable, Hashable)]
@@ -189,7 +218,7 @@ pub struct Hax(Vec<Digest>);
 pub type TxId = Digest;
 
 #[derive(Debug, Clone)]
-pub struct Spends(Vec<(Name, Spend)>);
+pub struct Spends(pub Vec<(Name, Spend)>);
 
 impl HashableTrait for Spends {
     fn hash(&self) -> Digest {
@@ -230,16 +259,11 @@ mod tests {
 
     #[test]
     fn test_hash_vectors() {
-        let lock = Pkh::new(
-            1,
-            vec!["6psXufjYNRxffRx72w8FF9b5MYg8TEmWq2nEFkqYm51yfqsnkJu8XqX".into()],
+        let seed1 = Seed::new_single_pkh(
+            "6psXufjYNRxffRx72w8FF9b5MYg8TEmWq2nEFkqYm51yfqsnkJu8XqX".into(),
+            4290881913.into(),
+            "6qF9RtWRUWfCX8NS8QU2u7A3BufVrsMwwWWZ8KSzZ5gVn4syqmeVa4".into(),
         );
-        let seed1 = Seed {
-            lock_root: SpendCondition(vec![LockPrimitive::Pkh(lock.clone())]).hash(),
-            note_data: NoteData(lock.clone()),
-            gift: Nicks(4290881913),
-            parent_hash: "6qF9RtWRUWfCX8NS8QU2u7A3BufVrsMwwWWZ8KSzZ5gVn4syqmeVa4".into(),
-        };
 
         check_hash(
             "lock_root",
@@ -267,16 +291,13 @@ mod tests {
 
         let mut spend = Spend {
             witness: Witness::new(SpendCondition(vec![
-                LockPrimitive::Pkh(lock.clone()),
+                LockPrimitive::Pkh(seed1.note_data.0.clone()),
                 LockPrimitive::Tim(LockTim {
                     rel: TimelockRange {
                         min: Some(100.into()),
                         max: None,
                     },
-                    abs: TimelockRange {
-                        min: None,
-                        max: None,
-                    },
+                    abs: TimelockRange::none(),
                 }),
             ])),
             seeds: Seeds(vec![seed1.clone(), seed2.clone()]),

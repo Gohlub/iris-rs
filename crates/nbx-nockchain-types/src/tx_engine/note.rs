@@ -1,3 +1,4 @@
+use alloc::vec;
 use alloc::vec::Vec;
 use nbx_ztd::{Belt, Digest, Hashable as HashableTrait, NounHashable, ZSet};
 use nbx_ztd_derive::{Hashable, NounHashable};
@@ -11,6 +12,13 @@ pub struct Pkh {
 impl Pkh {
     pub fn new(m: u64, hashes: Vec<Digest>) -> Self {
         Self { m, hashes }
+    }
+
+    pub fn single(hash: Digest) -> Self {
+        Self {
+            m: 1,
+            hashes: vec![hash],
+        }
     }
 }
 
@@ -48,7 +56,7 @@ pub struct Note {
     pub version: Version,
     pub origin_page: BlockHeight,
     pub name: Name,
-    pub note_data: NoteData,
+    pub note_data_hash: Digest,
     pub assets: Nicks,
 }
 
@@ -57,14 +65,14 @@ impl Note {
         version: Version,
         origin_page: BlockHeight,
         name: Name,
-        note_data: NoteData,
+        note_data_hash: Digest,
         assets: Nicks,
     ) -> Self {
         Self {
             version,
             origin_page,
             name,
-            note_data,
+            note_data_hash,
             assets,
         }
     }
@@ -72,6 +80,12 @@ impl Note {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hashable, NounHashable)]
 pub struct Nicks(pub usize);
+
+impl From<usize> for Nicks {
+    fn from(nicks: usize) -> Self {
+        Nicks(nicks)
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Balance(pub Vec<(Name, Note)>);
