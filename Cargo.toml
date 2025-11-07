@@ -4,6 +4,7 @@ members = [
   "crates/nbx-ztd",
   "crates/nbx-crypto",
   "crates/nbx-nockchain-types",
+  "crates/nbx-grpc-proto",
 ]
 
 resolver = "2"
