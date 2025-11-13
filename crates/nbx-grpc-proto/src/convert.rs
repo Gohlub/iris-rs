@@ -1,5 +1,5 @@
 use nbx_nockchain_types::*;
-use nbx_ztd::{Belt, Digest, Hashable as ZHashable};
+use nbx_ztd::{jam, Belt, Digest, Hashable as ZHashable};
 
 use crate::common::{ConversionError, Required};
 use crate::pb::common::v1::{
@@ -12,7 +12,7 @@ use crate::pb::common::v2::{
     lock_primitive, spend, Balance as PbBalance, BalanceEntry as PbBalanceEntry,
     BurnLock as PbBurnLock, HaxLock as PbHaxLock, LockMerkleProof as PbLockMerkleProof,
     LockPrimitive as PbLockPrimitive, LockTim as PbLockTim, MerkleProof as PbMerkleProof,
-    Note as PbNote, NoteData as PbNoteData, NoteDataEntry, NoteV1 as PbNoteV1,
+    Note as PbNote, NoteData as PbNoteData, NoteDataEntry as PbNoteDataEntry, NoteV1 as PbNoteV1,
     PkhLock as PbPkhLock, PkhSignature as PbPkhSignature, RawTransaction as PbRawTransaction,
     Seed as PbSeed, Spend as PbSpend, SpendCondition as PbSpendCondition,
     SpendEntry as PbSpendEntry, Witness as PbWitness, WitnessSpend as PbWitnessSpend,
@@ -197,13 +197,19 @@ pub fn seeds_to_pb(seeds: Seeds) -> Vec<PbSeed> {
     seeds.0.into_iter().map(PbSeed::from).collect()
 }
 
+impl From<NoteDataEntry> for PbNoteDataEntry {
+    fn from(data: NoteDataEntry) -> Self {
+        Self {
+            key: data.key,
+            blob: jam(data.val),
+        }
+    }
+}
+
 impl From<NoteData> for PbNoteData {
     fn from(data: NoteData) -> Self {
         Self {
-            entries: vec![NoteDataEntry {
-                key: "lock".to_string(),
-                blob: data.blob(),
-            }],
+            entries: data.0.into_iter().map(PbNoteDataEntry::from).collect(),
         }
     }
 }
@@ -430,7 +436,7 @@ impl From<Note> for PbNote {
                 version: Some(PbNoteVersion::from(note.version)),
                 origin_page: Some(PbBlockHeight::from(note.origin_page)),
                 name: Some(PbName::from(note.name)),
-                note_data: Some(PbNoteData::from(NoteData(Pkh::single(note.note_data_hash)))),
+                note_data: Some(PbNoteData::from(note.note_data)),
                 assets: Some(PbNicks::from(note.assets)),
             })),
         }
@@ -480,22 +486,42 @@ impl From<BalanceUpdate> for PbBalance {
 
 // Reverse conversions: protobuf -> native types
 
+impl TryFrom<PbNoteDataEntry> for NoteDataEntry {
+    type Error = ConversionError;
+
+    fn try_from(entry: PbNoteDataEntry) -> Result<Self, Self::Error> {
+        Ok(NoteDataEntry {
+            key: entry.key,
+            val: nbx_ztd::cue(&entry.blob).ok_or(Self::Error::Invalid("cue failed"))?,
+        })
+    }
+}
+
+impl TryFrom<PbNoteData> for NoteData {
+    type Error = ConversionError;
+
+    fn try_from(pb_data: PbNoteData) -> Result<Self, Self::Error> {
+        let entries: Result<Vec<NoteDataEntry>, ConversionError> = pb_data
+            .entries
+            .into_iter()
+            .map(PbNoteDataEntry::try_into)
+            .collect();
+        Ok(NoteData(entries?))
+    }
+}
+
 impl TryFrom<PbNote> for Note {
     type Error = ConversionError;
 
     fn try_from(pb_note: PbNote) -> Result<Self, Self::Error> {
         match pb_note.note_version.required("Note", "note_version")? {
-            crate::pb::common::v2::note::NoteVersion::V1(v1) => {
-                Ok(Note {
-                    version: v1.version.required("NoteV1", "version")?.into(),
-                    origin_page: v1.origin_page.required("NoteV1", "origin_page")?.into(),
-                    name: v1.name.required("NoteV1", "name")?.try_into()?,
-                    // Note: We can't fully recover the note_data from the protobuf,
-                    // so we use a zero hash as a placeholder
-                    note_data_hash: 0u64.hash(),
-                    assets: v1.assets.required("NoteV1", "assets")?.into(),
-                })
-            }
+            crate::pb::common::v2::note::NoteVersion::V1(v1) => Ok(Note {
+                version: v1.version.required("NoteV1", "version")?.into(),
+                origin_page: v1.origin_page.required("NoteV1", "origin_page")?.into(),
+                name: v1.name.required("NoteV1", "name")?.try_into()?,
+                note_data: v1.note_data.required("NoteV1", "note_data")?.try_into()?,
+                assets: v1.assets.required("NoteV1", "assets")?.into(),
+            }),
             crate::pb::common::v2::note::NoteVersion::Legacy(_) => Err(
                 ConversionError::UnsupportedVersion("Legacy note format not supported".to_string()),
             ),

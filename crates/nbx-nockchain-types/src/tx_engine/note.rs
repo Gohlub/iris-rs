@@ -1,6 +1,7 @@
-use alloc::vec;
+use alloc::string::ToString;
 use alloc::vec::Vec;
-use nbx_ztd::{jam, Digest, Hashable, Noun, NounEncode, ZSet};
+use alloc::{string::String, vec};
+use nbx_ztd::{Digest, Hashable, Noun, NounEncode, ZSet};
 use nbx_ztd_derive::{Hashable, NounEncode};
 
 #[derive(Debug, Clone)]
@@ -34,27 +35,52 @@ impl NounEncode for Pkh {
     }
 }
 
+#[derive(Debug, Clone, NounEncode)]
+pub struct NoteDataEntry {
+    pub key: String,
+    pub val: Noun,
+}
+
+impl Hashable for NoteDataEntry {
+    fn hash(&self) -> Digest {
+        fn hash_noun(noun: &Noun) -> Digest {
+            match noun {
+                Noun::Atom(a) => {
+                    let u: u64 = a.try_into().unwrap();
+                    u.hash()
+                }
+                Noun::Cell(left, right) => (hash_noun(left), hash_noun(right)).hash(),
+            }
+        }
+        (self.key.as_str(), hash_noun(&self.val)).hash()
+    }
+}
+
 #[derive(Debug, Clone)]
-pub struct NoteData(pub Pkh); // TODO: make more generic
+pub struct NoteData(pub Vec<NoteDataEntry>);
 
 impl NoteData {
-    pub fn blob(&self) -> Vec<u8> {
-        let z = ZSet::from_iter(self.0.hashes.iter());
-        jam((0, (("pkh", (self.0.m, z)), 0)).to_noun())
+    pub fn empty() -> Self {
+        Self(Vec::new())
+    }
+
+    pub fn from_pkh(pkh: Pkh) -> Self {
+        Self(vec![NoteDataEntry {
+            key: "lock".to_string(),
+            val: (0, (("pkh", (pkh.m, ZSet::from_iter(pkh.hashes.iter()))), 0)).to_noun(),
+        }])
     }
 }
 
 impl NounEncode for NoteData {
     fn to_noun(&self) -> Noun {
-        let z = ZSet::from_iter(self.0.hashes.iter());
-        (("lock", (0, (("pkh", (self.0.m, z)), 0))), (0, 0)).to_noun()
+        ZSet::from_iter(self.0.iter()).to_noun()
     }
 }
 
 impl Hashable for NoteData {
     fn hash(&self) -> Digest {
-        let z = ZSet::from_iter(self.0.hashes.iter().map(|d| &d.0[..]));
-        (("lock", (0, (("pkh", (self.0.m, z)), 0))), (0, 0)).hash()
+        ZSet::from_iter(self.0.iter()).hash()
     }
 }
 
@@ -63,7 +89,7 @@ pub struct Note {
     pub version: Version,
     pub origin_page: BlockHeight,
     pub name: Name,
-    pub note_data_hash: Digest,
+    pub note_data: NoteData,
     pub assets: Nicks,
 }
 
@@ -72,14 +98,14 @@ impl Note {
         version: Version,
         origin_page: BlockHeight,
         name: Name,
-        note_data_hash: Digest,
+        note_data: NoteData,
         assets: Nicks,
     ) -> Self {
         Self {
             version,
             origin_page,
             name,
-            note_data_hash,
+            note_data,
             assets,
         }
     }

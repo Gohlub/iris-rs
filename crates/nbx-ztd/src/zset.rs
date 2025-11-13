@@ -114,9 +114,9 @@ impl<T: NounEncode + Hashable> Hashable for ZSet<T> {
     }
 }
 
-impl<T: NounEncode + Hashable> NounEncode for ZSet<T> {
+impl<T: NounEncode> NounEncode for ZSet<T> {
     fn to_noun(&self) -> Noun {
-        fn visit<T: NounEncode + Hashable>(node: &Option<Box<Node<T>>>) -> Noun {
+        fn visit<T: NounEncode>(node: &Option<Box<Node<T>>>) -> Noun {
             match node {
                 None => 0.to_noun(),
                 Some(n) => {

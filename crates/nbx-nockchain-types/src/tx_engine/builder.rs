@@ -100,7 +100,7 @@ impl core::fmt::Display for BuildError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{LockPrimitive, LockTim, Name, Pkh, Version};
+    use crate::{LockPrimitive, LockTim, Name, NoteData, Pkh, Version};
     use alloc::{string::ToString, vec};
     use bip39::Mnemonic;
     use nbx_crypto::derive_master_key;
@@ -119,7 +119,7 @@ mod tests {
                 "2H7WHTE9dFXiGgx4J432DsCLuMovNkokfcnCGRg7utWGM9h13PgQvsH".into(),
                 "7yMzrJjkb2Xu8uURP7YB3DFcotttR8dKDXF1tSp2wJmmXUvLM7SYzvM".into(),
             ),
-            note_data_hash: 0.hash(),
+            note_data: NoteData::empty(),
             assets: 4294967296,
         };
 

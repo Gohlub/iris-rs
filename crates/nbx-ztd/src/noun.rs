@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, format, string::String, vec::Vec};
+use alloc::{boxed::Box, collections::btree_map::BTreeMap, format, string::String, vec, vec::Vec};
 use bitvec::prelude::{BitSlice, BitVec, Lsb0};
 use core::fmt;
 use ibig::UBig;
@@ -237,4 +237,149 @@ pub fn jam(noun: Noun) -> Vec<u8> {
     }
 
     buffer.into_vec()
+}
+
+pub fn cue(bytes: &[u8]) -> Option<Noun> {
+    cue_bitslice(BitSlice::from_slice(bytes))
+}
+
+pub fn cue_bitslice(buffer: &BitSlice<u8, Lsb0>) -> Option<Noun> {
+    #[derive(Copy, Clone)]
+    enum CueStackEntry {
+        DestinationPointer(*mut Noun),
+        BackRef(u64, *mut Noun),
+    }
+
+    pub fn next_up_to_n_bits<'a>(
+        cursor: &mut usize,
+        slice: &'a BitSlice<u8, Lsb0>,
+        n: usize,
+    ) -> &'a BitSlice<u8, Lsb0> {
+        let res = if (slice).len() >= *cursor + n {
+            &slice[*cursor..*cursor + n]
+        } else if slice.len() > *cursor {
+            &slice[*cursor..]
+        } else {
+            BitSlice::<u8, Lsb0>::empty()
+        };
+        *cursor += n;
+        res
+    }
+
+    pub fn rest_bits(cursor: usize, slice: &BitSlice<u8, Lsb0>) -> &BitSlice<u8, Lsb0> {
+        if slice.len() > cursor {
+            &slice[cursor..]
+        } else {
+            BitSlice::<u8, Lsb0>::empty()
+        }
+    }
+
+    fn get_size(cursor: &mut usize, buffer: &BitSlice<u8, Lsb0>) -> Option<usize> {
+        let buff_at_cursor = rest_bits(*cursor, buffer);
+        let bitsize = buff_at_cursor.first_one()?;
+        if bitsize == 0 {
+            *cursor += 1;
+            Some(0)
+        } else {
+            let mut size = [0u8; 8];
+            *cursor += bitsize + 1;
+            let size_bits = next_up_to_n_bits(cursor, buffer, bitsize - 1);
+            BitSlice::from_slice_mut(&mut size)[0..bitsize - 1].copy_from_bitslice(size_bits);
+            Some((u64::from_le_bytes(size) as usize) + (1 << (bitsize - 1)))
+        }
+    }
+
+    fn rub_backref(cursor: &mut usize, buffer: &BitSlice<u8, Lsb0>) -> Option<u64> {
+        // TODO: What's size here usually?
+        let size = get_size(cursor, buffer)?;
+        if size == 0 {
+            Some(0)
+        } else if size <= 64 {
+            // TODO: Size <= 64, so we can fit the backref in a direct atom?
+            let mut backref = [0u8; 8];
+            BitSlice::from_slice_mut(&mut backref)[0..size]
+                .copy_from_bitslice(&buffer[*cursor..*cursor + size]);
+            *cursor += size;
+            Some(u64::from_le_bytes(backref))
+        } else {
+            None
+        }
+    }
+
+    fn rub_atom(cursor: &mut usize, buffer: &BitSlice<u8, Lsb0>) -> Option<UBig> {
+        let size = get_size(cursor, buffer)?;
+        let bits = next_up_to_n_bits(cursor, buffer, size);
+        if size == 0 {
+            Some(UBig::from(0u64))
+        } else if size < 64 {
+            // Fits in a direct atom
+            let mut direct_raw = [0u8; 8];
+            BitSlice::from_slice_mut(&mut direct_raw)[0..bits.len()].copy_from_bitslice(bits);
+            Some(UBig::from(u64::from_le_bytes(direct_raw)))
+        } else {
+            // Need an indirect atom
+            let wordsize = (size + 63) >> 6;
+            let mut bytes = vec![0u8; wordsize * 8];
+            BitSlice::from_slice_mut(&mut bytes).copy_from_bitslice(bits);
+            Some(UBig::from_le_bytes(&bytes))
+        }
+    }
+
+    pub fn next_bit(cursor: &mut usize, slice: &BitSlice<u8, Lsb0>) -> bool {
+        if (*slice).len() > *cursor {
+            let res = slice[*cursor];
+            *cursor += 1;
+            res
+        } else {
+            false
+        }
+    }
+
+    let mut backref_map = BTreeMap::<u64, *mut Noun>::new();
+    let mut result = atom(0);
+    let mut cursor = 0;
+
+    let mut cue_stack = vec![];
+
+    cue_stack.push(CueStackEntry::DestinationPointer(&mut result as *mut Noun));
+
+    while let Some(stack_entry) = cue_stack.pop() {
+        unsafe {
+            // Capture the destination pointer and pop it off the stack
+            match stack_entry {
+                CueStackEntry::DestinationPointer(dest_ptr) => {
+                    // 1 bit
+                    if next_bit(&mut cursor, buffer) {
+                        // 11 tag: backref
+                        if next_bit(&mut cursor, buffer) {
+                            let backref = rub_backref(&mut cursor, buffer)?;
+                            *dest_ptr = (**backref_map.get(&backref)?).clone();
+                        } else {
+                            // 10 tag: cell
+                            let mut head = Box::new(atom(0));
+                            let head_ptr = (&mut *head) as *mut _;
+                            let mut tail = Box::new(atom(0));
+                            let tail_ptr = (&mut *tail) as *mut _;
+                            *dest_ptr = Noun::Cell(head, tail);
+                            let backref = (cursor - 2) as u64;
+                            backref_map.insert(backref, dest_ptr);
+                            cue_stack.push(CueStackEntry::BackRef(cursor as u64 - 2, dest_ptr));
+                            cue_stack.push(CueStackEntry::DestinationPointer(tail_ptr));
+                            cue_stack.push(CueStackEntry::DestinationPointer(head_ptr));
+                        }
+                    } else {
+                        // 0 tag: atom
+                        let backref: u64 = (cursor - 1) as u64;
+                        *dest_ptr = Noun::Atom(rub_atom(&mut cursor, buffer)?);
+                        backref_map.insert(backref, dest_ptr);
+                    }
+                }
+                CueStackEntry::BackRef(backref, noun_ptr) => {
+                    backref_map.insert(backref, noun_ptr);
+                }
+            }
+        }
+    }
+
+    Some(Noun::try_from(result).ok().unwrap())
 }

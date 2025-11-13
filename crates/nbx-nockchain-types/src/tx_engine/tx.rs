@@ -18,7 +18,7 @@ pub struct Seed {
 impl Seed {
     pub fn new_single_pkh(pkh: Digest, gift: Nicks, parent_hash: Digest) -> Self {
         let lock_root = SpendCondition::new_pkh(Pkh::single(pkh)).hash();
-        let note_data = NoteData(Pkh::single(pkh));
+        let note_data = NoteData::from_pkh(Pkh::single(pkh));
         Self {
             lock_root,
             note_data,
@@ -256,8 +256,9 @@ mod tests {
 
     #[test]
     fn test_hash_vectors() {
+        let pkh = "6psXufjYNRxffRx72w8FF9b5MYg8TEmWq2nEFkqYm51yfqsnkJu8XqX".into();
         let seed1 = Seed::new_single_pkh(
-            "6psXufjYNRxffRx72w8FF9b5MYg8TEmWq2nEFkqYm51yfqsnkJu8XqX".into(),
+            pkh,
             4290881913,
             "6qF9RtWRUWfCX8NS8QU2u7A3BufVrsMwwWWZ8KSzZ5gVn4syqmeVa4".into(),
         );
@@ -278,7 +279,7 @@ mod tests {
 
         let mut spend = Spend {
             witness: Witness::new(SpendCondition(vec![
-                LockPrimitive::Pkh(seed1.note_data.0.clone()),
+                LockPrimitive::Pkh(Pkh::single(pkh)),
                 LockPrimitive::Tim(LockTim::coinbase()),
             ])),
             seeds: Seeds(vec![seed1.clone(), seed2.clone()]),

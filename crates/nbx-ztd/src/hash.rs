@@ -1,4 +1,4 @@
-use alloc::{fmt, vec, vec::Vec};
+use alloc::{fmt, string::String, vec, vec::Vec};
 use ibig::ops::DivRem;
 
 use crate::{
@@ -165,6 +165,15 @@ impl<T: Hashable> Hashable for Vec<T> {
 }
 
 impl Hashable for &str {
+    fn hash(&self) -> Digest {
+        self.bytes()
+            .enumerate()
+            .fold(0u64, |acc, (i, byte)| acc | ((byte as u64) << (i * 8)))
+            .hash()
+    }
+}
+
+impl Hashable for String {
     fn hash(&self) -> Digest {
         self.bytes()
             .enumerate()
