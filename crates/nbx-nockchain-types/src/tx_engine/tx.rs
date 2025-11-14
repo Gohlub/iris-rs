@@ -16,9 +16,12 @@ pub struct Seed {
 }
 
 impl Seed {
-    pub fn new_single_pkh(pkh: Digest, gift: Nicks, parent_hash: Digest) -> Self {
+    pub fn new_single_pkh(pkh: Digest, gift: Nicks, parent_hash: Digest, include_lock_data: bool) -> Self {
         let lock_root = SpendCondition::new_pkh(Pkh::single(pkh)).hash();
-        let note_data = NoteData::from_pkh(Pkh::single(pkh));
+        let mut note_data = NoteData::empty();
+        if include_lock_data {
+            note_data.push_pkh(Pkh::single(pkh));
+        }
         Self {
             lock_root,
             note_data,
@@ -261,6 +264,7 @@ mod tests {
             pkh,
             4290881913,
             "6qF9RtWRUWfCX8NS8QU2u7A3BufVrsMwwWWZ8KSzZ5gVn4syqmeVa4".into(),
+            true,
         );
 
         check_hash(

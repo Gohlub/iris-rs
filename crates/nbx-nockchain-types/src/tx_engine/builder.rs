@@ -19,6 +19,7 @@ impl TxBuilder {
         gift: Nicks,
         fee: Nicks,
         refund_pkh: Digest,
+        include_lock_data: bool,
     ) -> Result<Self, BuildError> {
         if gift == 0 {
             return Err(BuildError::ZeroGift);
@@ -42,10 +43,10 @@ impl TxBuilder {
 
             let mut seeds_vec = Vec::new();
             if refund > 0 {
-                seeds_vec.push(Seed::new_single_pkh(refund_pkh, refund, note.hash()));
+                seeds_vec.push(Seed::new_single_pkh(refund_pkh, refund, note.hash(), include_lock_data));
             }
             if gift_portion > 0 {
-                seeds_vec.push(Seed::new_single_pkh(recipient, gift_portion, note.hash()));
+                seeds_vec.push(Seed::new_single_pkh(recipient, gift_portion, note.hash(), include_lock_data));
             }
 
             let spend = Spend::new(
@@ -132,17 +133,33 @@ mod tests {
             LockPrimitive::Tim(LockTim::coinbase()),
         ]);
         let tx = TxBuilder::new_simple(
+            vec![note.clone()],
+            spend_condition.clone(),
+            recipient,
+            gift,
+            fee,
+            refund_pkh,
+            true,
+        )
+        .unwrap()
+        .sign(&private_key)
+        .unwrap();
+
+        assert_eq!(tx.id.to_string(), "3j4vkn72mcpVtQrTgNnYyoF3rDuYax3aebT5axu3Qe16jm9x2wLtepW");
+
+        let tx = TxBuilder::new_simple(
             vec![note],
             spend_condition,
             recipient,
             gift,
             fee,
             refund_pkh,
+            false,
         )
         .unwrap()
         .sign(&private_key)
         .unwrap();
 
-        assert!(tx.id.to_string() == "3j4vkn72mcpVtQrTgNnYyoF3rDuYax3aebT5axu3Qe16jm9x2wLtepW");
+        assert_eq!(tx.id.to_string(), "AXiVtrHSXTDpK3RdpevVfkDmyheS5NnPsaYRf8uGZWP9JXfVVCzLpVH");
     }
 }

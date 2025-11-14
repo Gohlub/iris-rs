@@ -625,8 +625,8 @@ pub struct WasmSeed {
 #[wasm_bindgen]
 impl WasmSeed {
     #[wasm_bindgen(js_name = newSinglePkh)]
-    pub fn new_single_pkh(pkh: WasmDigest, gift: Nicks, parent_hash: WasmDigest) -> Self {
-        let seed = Seed::new_single_pkh(pkh.to_internal(), gift, parent_hash.to_internal());
+    pub fn new_single_pkh(pkh: WasmDigest, gift: Nicks, parent_hash: WasmDigest, include_lock_data: bool) -> Self {
+        let seed = Seed::new_single_pkh(pkh.to_internal(), gift, parent_hash.to_internal(), include_lock_data);
         Self {
             lock_root: WasmDigest::from_internal(&seed.lock_root),
             gift,
@@ -670,6 +670,7 @@ impl WasmTxBuilder {
         gift: Nicks,
         fee: Nicks,
         refund_pkh: WasmDigest,
+        include_lock_data: bool,
     ) -> Result<WasmTxBuilder, JsValue> {
         let internal_notes: Result<Vec<Note>, String> =
             notes.iter().map(|n| n.to_internal()).collect();
@@ -684,6 +685,7 @@ impl WasmTxBuilder {
             gift,
             fee,
             refund_pkh.to_internal(),
+            include_lock_data,
         )
         .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
 
