@@ -141,6 +141,18 @@ impl<A: Hashable, B: Hashable> Hashable for (A, B) {
     }
 }
 
+impl<A: Hashable, B: Hashable, C: Hashable> Hashable for (A, B, C) {
+    fn hash(&self) -> Digest {
+        (&self.0, (&self.1, &self.2)).hash()
+    }
+}
+
+impl<A: Hashable, B: Hashable, C: Hashable, D: Hashable> Hashable for (A, B, C, D) {
+    fn hash(&self) -> Digest {
+        (&self.0, (&self.1, (&self.2, &self.3))).hash()
+    }
+}
+
 impl<T: Hashable> Hashable for &[T] {
     fn hash(&self) -> Digest {
         let (first, rest) = self.split_first().unwrap();

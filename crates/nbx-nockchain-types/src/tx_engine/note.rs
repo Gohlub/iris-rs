@@ -67,7 +67,7 @@ impl NoteData {
     pub fn push_pkh(&mut self, pkh: Pkh) {
         self.0.push(NoteDataEntry {
             key: "lock".to_string(),
-            val: (0, (("pkh", (pkh.m, ZSet::from_iter(pkh.hashes.iter()))), 0)).to_noun(),
+            val: (0, ("pkh", (pkh.m, ZSet::from_iter(pkh.hashes.iter()))), 0).to_noun(),
         });
     }
 

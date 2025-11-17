@@ -625,8 +625,18 @@ pub struct WasmSeed {
 #[wasm_bindgen]
 impl WasmSeed {
     #[wasm_bindgen(js_name = newSinglePkh)]
-    pub fn new_single_pkh(pkh: WasmDigest, gift: Nicks, parent_hash: WasmDigest, include_lock_data: bool) -> Self {
-        let seed = Seed::new_single_pkh(pkh.to_internal(), gift, parent_hash.to_internal(), include_lock_data);
+    pub fn new_single_pkh(
+        pkh: WasmDigest,
+        gift: Nicks,
+        parent_hash: WasmDigest,
+        include_lock_data: bool,
+    ) -> Self {
+        let seed = Seed::new_single_pkh(
+            pkh.to_internal(),
+            gift,
+            parent_hash.to_internal(),
+            include_lock_data,
+        );
         Self {
             lock_root: WasmDigest::from_internal(&seed.lock_root),
             gift,
@@ -655,61 +665,49 @@ impl WasmSeed {
 // ============================================================================
 
 #[wasm_bindgen]
-pub struct WasmTxBuilder {
-    builder: Option<TxBuilder>,
-}
+pub struct WasmTxBuilder {}
 
 #[wasm_bindgen]
 impl WasmTxBuilder {
-    /// Create a simple transaction builder
+    /// Create a simple transaction
     #[wasm_bindgen(js_name = newSimple)]
     pub fn new_simple(
         notes: Vec<WasmNote>,
-        spend_condition: &WasmSpendCondition,
+        spend_conditions: Vec<WasmSpendCondition>,
         recipient: WasmDigest,
         gift: Nicks,
-        fee: Nicks,
+        fee_per_word: Nicks,
         refund_pkh: WasmDigest,
         include_lock_data: bool,
-    ) -> Result<WasmTxBuilder, JsValue> {
-        let internal_notes: Result<Vec<Note>, String> =
-            notes.iter().map(|n| n.to_internal()).collect();
+        signing_key_bytes: &[u8],
+    ) -> Result<WasmRawTx, JsValue> {
+        if notes.len() != spend_conditions.len() {
+            return Err(JsValue::from_str(
+                "notes and spend_conditions must have the same length",
+            ));
+        }
+
+        let internal_notes: Result<Vec<(Note, SpendCondition)>, String> = notes
+            .iter()
+            .zip(spend_conditions.iter())
+            .map(|(n, sc)| Ok((n.to_internal()?, sc.to_internal()?)))
+            .collect();
         let internal_notes = internal_notes.map_err(|e| JsValue::from_str(&format!("{}", e)))?;
 
-        let builder = TxBuilder::new_simple(
-            internal_notes,
-            spend_condition
-                .to_internal()
-                .map_err(|e| JsValue::from_str(&format!("{}", e)))?,
-            recipient.to_internal(),
-            gift,
-            fee,
-            refund_pkh.to_internal(),
-            include_lock_data,
-        )
-        .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
-
-        Ok(Self {
-            builder: Some(builder),
-        })
-    }
-
-    /// Sign the transaction with a private key
-    #[wasm_bindgen]
-    pub fn sign(&mut self, signing_key_bytes: &[u8]) -> Result<WasmRawTx, JsValue> {
         if signing_key_bytes.len() != 32 {
             return Err(JsValue::from_str("Private key must be 32 bytes"));
         }
-        let signing_key = PrivateKey(UBig::from_be_bytes(signing_key_bytes));
 
-        let builder = self
-            .builder
-            .take()
-            .ok_or_else(|| JsValue::from_str("Builder already consumed"))?;
-
-        let tx = builder
-            .sign(&signing_key)
-            .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
+        let tx = TxBuilder::new_simple(
+            internal_notes,
+            recipient.to_internal(),
+            gift,
+            fee_per_word,
+            refund_pkh.to_internal(),
+            include_lock_data,
+            &PrivateKey(UBig::from_be_bytes(signing_key_bytes)),
+        )
+        .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
 
         Ok(WasmRawTx::from_internal(&tx))
     }

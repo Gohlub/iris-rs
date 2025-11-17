@@ -81,7 +81,7 @@ impl Spend {
 
 impl HashableTrait for Spend {
     fn hash(&self) -> Digest {
-        (1, (&self.witness, (&self.seeds, &self.fee))).hash()
+        (1, &self.witness, &self.seeds, &self.fee).hash()
     }
 }
 
@@ -219,6 +219,35 @@ pub type TxId = Digest;
 
 #[derive(Debug, Clone)]
 pub struct Spends(pub Vec<(Name, Spend)>);
+
+impl Spends {
+    pub fn fee(&self, per_word: Nicks) -> Nicks {
+        const BASE_FEE: u64 = 1 << 15; // 32768
+        const MIN_FEE: u64 = 256;
+
+        fn noun_words(n: &Noun) -> u64 {
+            match n {
+                Noun::Atom(_) => 1,
+                Noun::Cell(l, r) => noun_words(l) + noun_words(r),
+            }
+        }
+
+        fn spend_words(spend: &Spend) -> u64 {
+            let seed_words: u64 = spend
+                .seeds
+                .0
+                .iter()
+                .map(|seed| noun_words(&seed.note_data.to_noun()))
+                .sum();
+            let witness_words = noun_words(&spend.witness.to_noun());
+
+            seed_words + witness_words
+        }
+
+        let words: u64 = self.0.iter().map(|s| spend_words(&s.1)).sum();
+        (per_word.max(BASE_FEE) * words).max(MIN_FEE)
+    }
+}
 
 impl HashableTrait for Spends {
     fn hash(&self) -> Digest {

@@ -104,6 +104,18 @@ impl<A: NounEncode, B: NounEncode> NounEncode for (A, B) {
     }
 }
 
+impl<A: NounEncode, B: NounEncode, C: NounEncode> NounEncode for (A, B, C) {
+    fn to_noun(&self) -> Noun {
+        (&self.0, (&self.1, &self.2)).to_noun()
+    }
+}
+
+impl<A: NounEncode, B: NounEncode, C: NounEncode, D: NounEncode> NounEncode for (A, B, C, D) {
+    fn to_noun(&self) -> Noun {
+        (&self.0, (&self.1, (&self.2, &self.3))).to_noun()
+    }
+}
+
 impl<T: NounEncode> NounEncode for &[T] {
     fn to_noun(&self) -> Noun {
         match self.split_last() {
