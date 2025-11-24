@@ -40,3 +40,5 @@ jobs:
 
       - name: Run tests with miri
         run: cargo miri test --all
+        env:
+          MIRIFLAGS: -Zmiri-permissive-provenance
