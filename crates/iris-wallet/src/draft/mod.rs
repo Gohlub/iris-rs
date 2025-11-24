@@ -12,14 +12,14 @@ pub struct Draft;
 
 // NOTE: this is called by TxEngine
 pub fn create_tx(
-    names: &[Name],
-    fee: Coins,
-    recipients: &[Recipient],
-    lock_intent: LockIntent,
+    _names: &[Name],
+    _fee: Coins,
+    _recipients: &[Recipient],
+    _lock_intent: LockIntent,
 ) -> Draft {
     todo!()
 }
 
-pub fn sign_tx(draft: Draft, handle: KeyHandle) -> Draft {
+pub fn sign_tx(_draft: Draft, _handle: KeyHandle) -> Draft {
     todo!()
 }

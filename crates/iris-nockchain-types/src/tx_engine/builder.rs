@@ -1,6 +1,5 @@
 use alloc::collections::btree_map::BTreeMap;
 use alloc::collections::btree_set::BTreeSet;
-use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use iris_crypto::PrivateKey;
@@ -233,6 +232,7 @@ impl SpendBuilder {
         let mut fee = self.spend.unclamped_fee(fee_per_word);
 
         for mu in self.missing_unlocks() {
+            #[allow(clippy::single_match)]
             match mu {
                 MissingUnlocks::Pkh { num_sigs, .. } => {
                     // Heuristic for missing signatures. It is perhaps 30, but perhaps not.
@@ -528,7 +528,7 @@ impl TxBuilder {
                 } else if a.spend.fee != b.spend.fee {
                     // If both are like that, or neither, put the lowest fee first
                     a.spend.fee.cmp(&b.spend.fee)
-                } else if b.spend.fee != a.spend.fee {
+                } else if anra != bnra {
                     // If equal, prioritize lowest assets
                     anra.cmp(&bnra)
                 } else {

@@ -1,3 +1,4 @@
+#![allow(clippy::doc_overindented_list_items)]
 //! gRPC protobuf definitions and conversions for nockbox-wallet
 //!
 //! This crate provides protobuf type definitions compatible with nockchain's

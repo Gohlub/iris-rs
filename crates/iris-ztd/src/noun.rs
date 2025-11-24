@@ -34,29 +34,22 @@ pub enum Noun {
 }
 
 impl Noun {
+    #[allow(clippy::inherent_to_string_shadow_display)]
     pub fn to_string(&self) -> String {
         fn autocons(cell: &Noun) -> String {
             match cell {
                 Noun::Atom(a) => format!("{}", a),
-                Noun::Cell(left, right) => {
-                    if let Noun::Cell(_, _) = right.as_ref() {
-                        format!("{} {}", left.to_string(), autocons(right))
-                    } else {
-                        format!("{} {}", left.to_string(), right.to_string())
-                    }
-                }
+                Noun::Cell(head, tail) => match &**tail {
+                    Noun::Cell(_, _) => format!("{} {}", autocons(head), autocons(tail)),
+                    Noun::Atom(a) if a.is_zero() => autocons(head),
+                    Noun::Atom(_) => format!("{} . {}", autocons(head), autocons(tail)),
+                },
             }
         }
 
         match self {
             Noun::Atom(a) => format!("{}", a),
-            Noun::Cell(left, right) => {
-                if let Noun::Cell(_, _) = right.as_ref() {
-                    format!("[{} {}]", left.to_string(), autocons(right))
-                } else {
-                    format!("[{} {}]", left.to_string(), right.to_string())
-                }
-            }
+            Noun::Cell(head, tail) => format!("[{}]", autocons(&Noun::Cell(head.clone(), tail.clone()))),
         }
     }
 }
@@ -359,16 +352,16 @@ impl<T: NounEncode, const N: usize> NounEncode for [T; N] {
 impl<T: NounDecode, const N: usize> NounDecode for [T; N] {
     fn from_noun(mut noun: &Noun) -> Option<Self> {
         let mut ret = [(); N].map(|_| MaybeUninit::<T>::uninit());
-        for i in 0..N {
+        for item in ret.iter_mut().take(N) {
             let Noun::Cell(a, b) = noun else {
                 return None;
             };
-            ret[i] = MaybeUninit::<T>::new(T::from_noun(a)?);
+            *item = MaybeUninit::<T>::new(T::from_noun(a)?);
             noun = b;
         }
 
-        // SAFETY: already initialized everything
-        Some(ret.map(|v| unsafe { v.assume_init() }))
+        // SAFETY: all elements have been initialized in the loop
+        Some(unsafe { ret.map(|v| v.assume_init()) })
     }
 }
 
@@ -676,5 +669,5 @@ pub fn cue_bitslice(buffer: &BitSlice<u8, Lsb0>) -> Option<Noun> {
         }
     }
 
-    Some(Noun::try_from(result).ok().unwrap())
+    Some(result)
 }

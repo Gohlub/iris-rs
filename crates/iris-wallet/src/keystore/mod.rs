@@ -1,13 +1,16 @@
 pub use iris_crypto::{PrivateKey, PublicKey};
 use std::collections::BTreeMap;
 
+#[allow(dead_code)]
 struct MasterKey {
     priv_key: PrivateKey,
     // Make sure we only serialize the key ID's, but not the keys themselves
     loaded_children: BTreeMap<u32, (PublicKey, PrivateKey)>,
 }
 
+#[allow(dead_code)]
 pub struct Keystore {
+    #[allow(dead_code)]
     keys: BTreeMap<PublicKey, MasterKey>,
 }
 
@@ -22,6 +25,7 @@ impl Keystore {
     // sign(chal, key_handle) -> sig
 }
 
+#[allow(dead_code)]
 pub struct KeyHandle {
     master_pubkey: PublicKey,
     child_id: u32,

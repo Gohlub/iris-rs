@@ -206,7 +206,7 @@ mod tests {
         );
 
         // Corrupting digest, signature, or pubkey should all cause failure
-        let mut wrong_digest = digest.clone();
+        let mut wrong_digest = digest;
         wrong_digest.0[0] = Belt(0);
         assert!(
             !pubkey.verify(&wrong_digest, &signature),

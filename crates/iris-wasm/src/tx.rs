@@ -1059,6 +1059,7 @@ impl WasmTxBuilder {
     /// to adjust fees with `setFeeAndBalanceRefund` or `recalcAndSetFee`. Once all operations are
     /// done, one should call `removeUnusedNotes` to ensure these notes are not used within the
     /// transaction.
+    #[allow(clippy::too_many_arguments)]
     #[wasm_bindgen(js_name = simpleSpend)]
     pub fn simple_spend(
         &mut self,
