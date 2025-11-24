@@ -49,7 +49,9 @@ impl Noun {
 
         match self {
             Noun::Atom(a) => format!("{}", a),
-            Noun::Cell(head, tail) => format!("[{}]", autocons(&Noun::Cell(head.clone(), tail.clone()))),
+            Noun::Cell(head, tail) => {
+                format!("[{}]", autocons(&Noun::Cell(head.clone(), tail.clone())))
+            }
         }
     }
 }
