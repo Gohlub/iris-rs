@@ -446,8 +446,8 @@ impl RawTx {
         for (_, spend) in spends {
             for seed in spend.seeds.0.iter() {
                 seeds_by_lock
-                    .entry(seed.lock_root.clone())
-                    .or_insert_with(ZSet::new)
+                    .entry(seed.lock_root)
+                    .or_default()
                     .insert(seed.clone());
             }
         }

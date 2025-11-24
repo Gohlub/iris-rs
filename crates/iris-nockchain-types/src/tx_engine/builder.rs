@@ -446,7 +446,7 @@ impl TxBuilder {
         let mut spends = self.spends.values_mut().collect::<Vec<_>>();
 
         if cur_fee == fee {
-            return Ok(self);
+            Ok(self)
         } else if cur_fee < fee {
             let mut fee_left = fee - cur_fee;
 
@@ -507,7 +507,7 @@ impl TxBuilder {
             }
 
             if fee_left > 0 {
-                return Err(BuildError::InsufficientFunds);
+                Err(BuildError::InsufficientFunds)
             } else {
                 Ok(self)
             }
@@ -569,7 +569,7 @@ impl TxBuilder {
             }
 
             if refund_left > 0 {
-                return Err(BuildError::AccountingMismatch);
+                Err(BuildError::AccountingMismatch)
             } else {
                 Ok(self)
             }
@@ -598,12 +598,9 @@ impl core::fmt::Display for BuildError {
             BuildError::AccountingMismatch => {
                 write!(f, "Assets in must equal gift + fee + refund")
             }
-            BuildError::NoteNotFound(name) => write!(
-                f,
-                "Unable to find note [{} {}]",
-                name.first.to_string(),
-                name.last.to_string()
-            ),
+            BuildError::NoteNotFound(name) => {
+                write!(f, "Unable to find note [{} {}]", name.first, name.last)
+            }
             BuildError::InvalidFee(expected, got) => {
                 write!(
                     f,

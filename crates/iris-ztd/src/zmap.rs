@@ -19,6 +19,12 @@ struct Node<K, V> {
     right: Option<Box<Node<K, V>>>,
 }
 
+impl<K, V> Default for ZMap<K, V> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<K, V> ZMap<K, V> {
     pub fn new() -> Self {
         ZMap { root: None }
@@ -48,9 +54,9 @@ impl<K: NounEncode, V: NounEncode> ZMap<K, V> {
         }
         let go_left = Self::gor_tip(&key, &n.key);
         if go_left {
-            return Self::get_inner(n.left.as_ref()?, key);
+            Self::get_inner(n.left.as_ref()?, key)
         } else {
-            return Self::get_inner(n.right.as_ref()?, key);
+            Self::get_inner(n.right.as_ref()?, key)
         }
     }
 

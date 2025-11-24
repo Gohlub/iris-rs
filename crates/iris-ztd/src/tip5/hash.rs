@@ -118,7 +118,7 @@ pub fn hash_fixed(input_vec: &mut Vec<Belt>) -> [u64; 5] {
 
     // process input (q=1, so one batch only)
     //tip5_absorb_input(&mut input_vec, &mut sponge, q);
-    tip5_absorb_rate(&mut sponge, &input_vec);
+    tip5_absorb_rate(&mut sponge, input_vec);
 
     //  calc digest
     tip5_calc_digest(&sponge)

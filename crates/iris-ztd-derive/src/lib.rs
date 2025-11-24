@@ -58,7 +58,7 @@ pub fn derive_hashable(input: TokenStream) -> TokenStream {
                     quote! { self.0.hash() }
                 } else {
                     // Build nested tuples for tuple structs using indices
-                    let indices: Vec<_> = (0..field_count).map(|i| syn::Index::from(i)).collect();
+                    let indices: Vec<_> = (0..field_count).map(syn::Index::from).collect();
                     build_nested_tuple_indexed(&indices)
                 }
             }
@@ -150,7 +150,7 @@ pub fn derive_noun_encode(input: TokenStream) -> TokenStream {
                 } else if field_count == 1 {
                     quote! { iris_ztd::NounEncode::to_noun(&self.0) }
                 } else {
-                    let indices: Vec<_> = (0..field_count).map(|i| syn::Index::from(i)).collect();
+                    let indices: Vec<_> = (0..field_count).map(syn::Index::from).collect();
                     let tuple_expr = build_nested_tuple_refs_indexed(&indices);
                     quote! { iris_ztd::NounEncode::to_noun(&#tuple_expr) }
                 }
@@ -226,7 +226,7 @@ pub fn derive_noun_decode(input: TokenStream) -> TokenStream {
                 } else if field_count == 1 {
                     quote! { Some(Self(iris_ztd::NounDecode::from_noun(noun)?)) }
                 } else {
-                    let indices: Vec<_> = (0..field_count).map(|i| syn::Index::from(i)).collect();
+                    let indices: Vec<_> = (0..field_count).map(syn::Index::from).collect();
                     quote! {
                         let tup = iris_ztd::NounDecode::from_noun(noun)?;
                         Some(Self(

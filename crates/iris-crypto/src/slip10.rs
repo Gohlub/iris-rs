@@ -7,7 +7,7 @@ use crate::cheetah::{PrivateKey, PublicKey};
 
 fn hmac_sha512(key: &[u8], data: &[u8]) -> [u8; 64] {
     let mut mac = Hmac::<Sha512>::new_from_slice(key).unwrap();
-    mac.update(&data);
+    mac.update(data);
     mac.finalize().into_bytes().into()
 }
 

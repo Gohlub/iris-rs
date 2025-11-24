@@ -93,12 +93,8 @@ impl CheetahPoint {
         v64.reverse();
 
         let c_pt = CheetahPoint {
-            x: F6lt {
-                0: <[Belt; 6]>::try_from(&v64[..6]).map_err(|_| CheetahError::ArrayConversion)?,
-            },
-            y: F6lt {
-                0: <[Belt; 6]>::try_from(&v64[6..]).map_err(|_| CheetahError::ArrayConversion)?,
-            },
+            x: F6lt(<[Belt; 6]>::try_from(&v64[..6]).map_err(|_| CheetahError::ArrayConversion)?),
+            y: F6lt(<[Belt; 6]>::try_from(&v64[6..]).map_err(|_| CheetahError::ArrayConversion)?),
             inf: false,
         };
 

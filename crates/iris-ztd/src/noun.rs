@@ -24,7 +24,7 @@ where
     D: Deserializer<'de>,
 {
     let r = Noun::deserialize(deserializer)?;
-    Ok(T::from_noun(&r).ok_or_else(|| DeError::custom("unable to parse noun"))?)
+    T::from_noun(&r).ok_or_else(|| DeError::custom("unable to parse noun"))
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -70,8 +70,8 @@ impl Serialize for Noun {
             Self::Atom(v) => serializer.serialize_str(&alloc::format!("{v:x}")),
             Self::Cell(a, b) => {
                 let mut tup = serializer.serialize_tuple(2)?;
-                tup.serialize_element(&*a)?;
-                tup.serialize_element(&*b)?;
+                tup.serialize_element(a)?;
+                tup.serialize_element(b)?;
                 tup.end()
             }
         }
@@ -294,7 +294,7 @@ impl<T: NounEncode> NounEncode for Option<T> {
 impl<T: NounDecode> NounDecode for Option<T> {
     fn from_noun(noun: &Noun) -> Option<Self> {
         match noun {
-            Noun::Cell(x, v) if &**x == &atom(0) => Some(Some(T::from_noun(v)?)),
+            Noun::Cell(x, v) if **x == atom(0) => Some(Some(T::from_noun(v)?)),
             Noun::Atom(x) if x.is_zero() => Some(None),
             _ => None,
         }

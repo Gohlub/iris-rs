@@ -14,7 +14,7 @@ pub struct Digest(pub [Belt; 5]);
 
 impl From<[u64; 5]> for Digest {
     fn from(belts: [u64; 5]) -> Self {
-        Digest(belts.map(|b| Belt(b)))
+        Digest(belts.map(Belt))
     }
 }
 
@@ -83,7 +83,7 @@ pub fn hash_noun(leaves: &[Belt], dyck: &[Belt]) -> Digest {
     combined.push(Belt(leaves.len() as u64));
     combined.extend_from_slice(leaves);
     combined.extend_from_slice(dyck);
-    Digest(hash_varlen(&mut combined).map(|u| Belt(u)))
+    Digest(hash_varlen(&mut combined).map(Belt))
 }
 
 pub trait Hashable {
@@ -92,7 +92,7 @@ pub trait Hashable {
 
 impl Hashable for Belt {
     fn hash(&self) -> Digest {
-        hash_noun(&vec![*self], &vec![])
+        hash_noun(&[*self], &[])
     }
 }
 

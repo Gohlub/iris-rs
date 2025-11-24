@@ -16,6 +16,12 @@ struct Node<T> {
     right: Option<Box<Node<T>>>,
 }
 
+impl<T> Default for ZSet<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> ZSet<T> {
     pub fn new() -> Self {
         ZSet { root: None }

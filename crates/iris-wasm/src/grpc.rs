@@ -96,7 +96,7 @@ impl GrpcClient {
             .map_err(|e| JsValue::from_str(&format!("Deserialization error: {}", e)))?;
 
         // Extract the tx_id from the raw transaction
-        let pb_tx_id = pb_raw_tx.id.clone();
+        let pb_tx_id = pb_raw_tx.id;
 
         let request = WalletSendTransactionRequest {
             tx_id: pb_tx_id,

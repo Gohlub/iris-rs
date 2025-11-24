@@ -14,7 +14,7 @@ use iris_nockchain_types::{
     Nicks,
 };
 use iris_nockchain_types::{Hax, LockTim, MissingUnlocks, Source, SpendBuilder, Spends};
-use iris_ztd::{cue, jam, Digest, Hashable as HashableTrait, NounDecode, NounEncode};
+use iris_ztd::{cue, jam, Digest, Hashable as HashableTrait, NounDecode};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -54,7 +54,7 @@ impl WasmDigest {
 
     #[wasm_bindgen(js_name = toProtobuf)]
     pub fn to_protobuf(&self) -> Result<JsValue, JsValue> {
-        let digest = self.to_internal().map_err(|e| JsValue::from_str(e))?;
+        let digest = self.to_internal().map_err(JsValue::from_str)?;
         let pb = pb_v1::Hash::from(digest);
         serde_wasm_bindgen::to_value(&pb).map_err(|e| e.into())
     }
@@ -431,7 +431,7 @@ impl WasmNote {
     pub fn hash(&self) -> Result<WasmDigest, JsValue> {
         let note = self
             .to_internal()
-            .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
         Ok(WasmDigest::from_internal(&note.hash()))
     }
 
@@ -450,7 +450,7 @@ impl WasmNote {
     pub fn to_protobuf(&self) -> Result<JsValue, JsValue> {
         let note = self
             .to_internal()
-            .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
         let pb = pb::Note::from(note);
         serde_wasm_bindgen::to_value(&pb).map_err(|e| e.into())
     }
@@ -782,7 +782,7 @@ impl WasmSpendCondition {
     pub fn hash(&self) -> Result<WasmDigest, JsValue> {
         let condition = self
             .to_internal()
-            .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
         Ok(WasmDigest::from_internal(&condition.hash()))
     }
 
@@ -790,7 +790,7 @@ impl WasmSpendCondition {
     pub fn first_name(&self) -> Result<WasmDigest, JsValue> {
         let condition = self
             .to_internal()
-            .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
         Ok(WasmDigest::from_internal(&condition.first_name()))
     }
 
@@ -807,7 +807,7 @@ impl WasmSpendCondition {
             internal
                 .0
                 .into_iter()
-                .map(|v| WasmLockPrimitive::from_internal(v))
+                .map(WasmLockPrimitive::from_internal)
                 .collect(),
         )
     }
@@ -1019,7 +1019,7 @@ impl WasmTxBuilder {
             .map(|(n, sc)| Ok((n.to_internal()?, sc.to_internal()?)))
             .map(|v| v.map(|(a, b)| (a.name.clone(), (a, b))))
             .collect();
-        let internal_notes = internal_notes.map_err(|e| JsValue::from_str(&format!("{}", e)))?;
+        let internal_notes = internal_notes.map_err(|e| JsValue::from_str(&e.to_string()))?;
 
         let builder = TxBuilder::from_tx(tx.internal, internal_notes).map_err(|e| e.to_string())?;
 
@@ -1081,7 +1081,7 @@ impl WasmTxBuilder {
             .zip(spend_conditions.iter())
             .map(|(n, sc)| Ok((n.to_internal()?, sc.to_internal()?)))
             .collect();
-        let internal_notes = internal_notes.map_err(|e| JsValue::from_str(&format!("{}", e)))?;
+        let internal_notes = internal_notes.map_err(|e| JsValue::from_str(&e.to_string()))?;
 
         self.builder
             .simple_spend_base(
@@ -1141,7 +1141,7 @@ impl WasmTxBuilder {
     /// Appends `preimage_jam` to all spend conditions that expect this preimage.
     #[wasm_bindgen(js_name = addPreimage)]
     pub fn add_preimage(&mut self, preimage_jam: &[u8]) -> Result<Option<WasmDigest>, JsValue> {
-        let preimage = cue(&preimage_jam).ok_or("Unable to cue preimage jam")?;
+        let preimage = cue(preimage_jam).ok_or("Unable to cue preimage jam")?;
         Ok(self
             .builder
             .add_preimage(preimage)
@@ -1331,7 +1331,7 @@ impl WasmSpendBuilder {
     /// Attatch a preimage to this spend
     #[wasm_bindgen(js_name = addPreimage)]
     pub fn add_preimage(&mut self, preimage_jam: &[u8]) -> Result<Option<WasmDigest>, JsValue> {
-        let preimage = cue(&preimage_jam).ok_or("Unable to cue preimage jam")?;
+        let preimage = cue(preimage_jam).ok_or("Unable to cue preimage jam")?;
         Ok(self
             .builder
             .add_preimage(preimage)
@@ -1378,13 +1378,13 @@ impl WasmMissingUnlocks {
             MissingUnlocks::Pkh { num_sigs, sig_of } => Self::Pkh {
                 num_sigs: *num_sigs,
                 sig_of: sig_of
-                    .into_iter()
+                    .iter()
                     .map(|v| WasmDigest::from_internal(v).value)
                     .collect(),
             },
             MissingUnlocks::Hax { preimages_for } => Self::Hax {
                 preimages_for: preimages_for
-                    .into_iter()
+                    .iter()
                     .map(|v| WasmDigest::from_internal(v).value)
                     .collect(),
             },

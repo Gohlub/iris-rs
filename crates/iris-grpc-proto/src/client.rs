@@ -87,8 +87,8 @@ impl PublicNockchainGrpcClient {
             };
 
             if height.is_none() {
-                height = balance.height.clone();
-                block_id = balance.block_id.clone();
+                height = balance.height;
+                block_id = balance.block_id;
             }
 
             if balance.height != height || balance.block_id != block_id {
