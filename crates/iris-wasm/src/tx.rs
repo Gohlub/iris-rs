@@ -216,12 +216,12 @@ pub struct WasmSource {
 
 #[wasm_bindgen(js_class = Source)]
 impl WasmSource {
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter, js_name = hash)]
     pub fn hash(&self) -> WasmDigest {
         self.hash.clone()
     }
 
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter, js_name = isCoinbase)]
     pub fn is_coinbase(&self) -> bool {
         self.is_coinbase
     }
@@ -631,7 +631,7 @@ impl WasmHax {
     }
 
     #[wasm_bindgen(getter)]
-    pub fn get_digests(&self) -> Vec<WasmDigest> {
+    pub fn digests(&self) -> Vec<WasmDigest> {
         self.digests.clone()
     }
 
@@ -1228,12 +1228,12 @@ pub struct WasmTxNotes {
 #[wasm_bindgen(js_class = TxNotes)]
 impl WasmTxNotes {
     #[wasm_bindgen(getter)]
-    pub fn get_notes(&self) -> Vec<WasmNote> {
+    pub fn notes(&self) -> Vec<WasmNote> {
         self.notes.clone()
     }
 
     #[wasm_bindgen(getter, js_name = spendConditions)]
-    pub fn get_spend_conditions(&self) -> Vec<WasmSpendCondition> {
+    pub fn spend_conditions(&self) -> Vec<WasmSpendCondition> {
         self.spend_conditions.clone()
     }
 }

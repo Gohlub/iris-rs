@@ -37,7 +37,7 @@ jobs:
 
     - name: Build WASM
       working-directory: crates/iris-wasm
-      run: wasm-pack build --target web
+      run: wasm-pack build --target web --scope nockbox
 
     - name: Validate npm package
       working-directory: crates/iris-wasm/pkg

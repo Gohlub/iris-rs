@@ -17,7 +17,7 @@ impl GrpcClient {
     }
 
     /// Get balance for a wallet address
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = getBalanceByAddress)]
     pub async fn get_balance_by_address(&self, address: String) -> Result<JsValue, JsValue> {
         let client = Client::new(self.endpoint.clone());
         let mut grpc_client = nockchain_service_client::NockchainServiceClient::new(client);
@@ -52,7 +52,7 @@ impl GrpcClient {
     }
 
     /// Get balance for a first name
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = getBalanceByFirstName)]
     pub async fn get_balance_by_first_name(&self, first_name: String) -> Result<JsValue, JsValue> {
         let client = Client::new(self.endpoint.clone());
         let mut grpc_client = nockchain_service_client::NockchainServiceClient::new(client);
@@ -87,7 +87,7 @@ impl GrpcClient {
     }
 
     /// Send a transaction
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = sendTransaction)]
     pub async fn send_transaction(&self, raw_tx: JsValue) -> Result<JsValue, JsValue> {
         let client = Client::new(self.endpoint.clone());
         let mut grpc_client = nockchain_service_client::NockchainServiceClient::new(client);
@@ -121,7 +121,7 @@ impl GrpcClient {
     }
 
     /// Check if a transaction was accepted
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = transactionAccepted)]
     pub async fn transaction_accepted(&self, tx_id: String) -> Result<bool, JsValue> {
         let client = Client::new(self.endpoint.clone());
         let mut grpc_client = nockchain_service_client::NockchainServiceClient::new(client);

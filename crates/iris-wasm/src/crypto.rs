@@ -47,17 +47,17 @@ pub struct WasmExtendedKey {
 
 #[wasm_bindgen(js_class = ExtendedKey)]
 impl WasmExtendedKey {
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter, js_name = privateKey)]
     pub fn private_key(&self) -> Option<Vec<u8>> {
         self.private_key.clone()
     }
 
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter, js_name = publicKey)]
     pub fn public_key(&self) -> Vec<u8> {
         self.public_key.clone()
     }
 
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter, js_name = chainCode)]
     pub fn chain_code(&self) -> Vec<u8> {
         self.chain_code.clone()
     }

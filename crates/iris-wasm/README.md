@@ -17,7 +17,7 @@ WebAssembly bindings for the Nockbox Wallet, including cryptographic operations,
 
 ```bash
 cd crates/iris-wasm
-wasm-pack build --target web --out-dir pkg
+wasm-pack build --target web --out-dir pkg --scope nockbox
 ```
 
 This generates the WebAssembly module and JavaScript bindings in the `pkg/` directory.
@@ -238,7 +238,7 @@ If you encounter build errors:
 ```bash
 # Clean and rebuild
 cargo clean
-wasm-pack build --target web --out-dir pkg
+wasm-pack build --target web --out-dir pkg --scope nockbox
 ```
 
 ## Development
@@ -246,7 +246,7 @@ wasm-pack build --target web --out-dir pkg
 ### Rebuild WASM
 After making changes to the Rust code:
 ```bash
-wasm-pack build --target web --out-dir pkg
+wasm-pack build --target web --out-dir pkg --scope nockbox
 ```
 
 ### Update Protobuf Definitions
