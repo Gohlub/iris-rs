@@ -2,6 +2,14 @@
 name = "iris-grpc-proto"
 version = "0.1.0"
 edition = "2021"
+keywords = ["nockchain", "iris", "wallet", "nock"]
+license = "MIT"
+repository = "https://github.com/nockbox/iris-rs"
+rust-version = "1.85.0"
+description = "Nockchain gRPC protobuf definitions"
+documentation = "https://docs.rs/iris-grpc-proto"
+homepage = "https://nockbox.org"
+authors = ["NockBox inc. <tech@nockbox.org>"]
 
 [dependencies]
 iris-nockchain-types = { path = "../iris-nockchain-types" }

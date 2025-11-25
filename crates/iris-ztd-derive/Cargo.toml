@@ -2,6 +2,14 @@
 name = "iris-ztd-derive"
 version = "0.1.0"
 edition = "2021"
+keywords = ["nockchain", "iris", "wallet", "nock"]
+license = "MIT"
+repository = "https://github.com/nockbox/iris-rs"
+rust-version = "1.85.0"
+description = "Derive macros for iris-ztd"
+documentation = "https://docs.rs/iris-ztd-derive"
+homepage = "https://nockbox.org"
+authors = ["NockBox inc. <tech@nockbox.org>"]
 
 [lib]
 proc-macro = true

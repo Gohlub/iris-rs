@@ -2,6 +2,14 @@
 name = "iris-wasm"
 version.workspace = true
 edition.workspace = true
+keywords = ["nockchain", "iris", "wallet", "nock"]
+license = "MIT"
+repository = "https://github.com/nockbox/iris-rs"
+rust-version = "1.85.0"
+description = "WASM bindings for Iris wallet"
+documentation = "https://docs.rs/iris-wasm"
+homepage = "https://nockbox.org"
+authors = ["NockBox inc. <tech@nockbox.org>"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]

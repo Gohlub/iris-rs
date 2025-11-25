@@ -2,6 +2,14 @@
 name = "iris-ztd"
 version.workspace = true
 edition.workspace = true
+keywords = ["nockchain", "iris", "wallet", "nock"]
+license = "MIT"
+repository = "https://github.com/nockbox/iris-rs"
+rust-version = "1.85.0"
+description = "Nockchain Zero-knowledge data structures"
+documentation = "https://docs.rs/iris-ztd"
+homepage = "https://nockbox.org"
+authors = ["NockBox inc. <tech@nockbox.org>"]
 
 [dependencies]
 bs58 = { version = "0.5", default-features = false, features = ["alloc"] }
