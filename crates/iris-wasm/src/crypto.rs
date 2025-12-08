@@ -16,6 +16,11 @@ pub struct WasmSignature {
 
 #[wasm_bindgen(js_class = Signature)]
 impl WasmSignature {
+    #[wasm_bindgen(constructor)]
+    pub fn new(c: Vec<u8>, s: Vec<u8>) -> Self {
+        Self { c, s }
+    }
+
     #[wasm_bindgen(getter)]
     pub fn c(&self) -> Vec<u8> {
         self.c.clone()
@@ -30,6 +35,13 @@ impl WasmSignature {
         Self {
             c: sig.c.to_be_bytes(),
             s: sig.s.to_be_bytes(),
+        }
+    }
+
+    fn to_internal(&self) -> Signature {
+        Signature {
+            c: UBig::from_be_bytes(&self.c),
+            s: UBig::from_be_bytes(&self.s),
         }
     }
 }
@@ -86,7 +98,7 @@ impl WasmExtendedKey {
         }
         let mut pub_bytes = [0u8; 97];
         pub_bytes.copy_from_slice(&self.public_key);
-        let public_key = PublicKey::from_be_bytes(&pub_bytes);
+        let public_key = PublicKey::from_be_bytes(&self.public_key);
 
         if self.chain_code.len() != 32 {
             return Err("Chain code must be 32 bytes".to_string());
@@ -176,4 +188,22 @@ pub fn sign_message(private_key_bytes: &[u8], message: &str) -> Result<WasmSigna
     let private_key = PrivateKey(UBig::from_be_bytes(private_key_bytes));
     let digest = Belt::from_bytes(message.as_bytes()).to_noun().hash();
     Ok(WasmSignature::from_internal(&private_key.sign(&digest)))
+}
+
+/// Verify a signature with a public key
+#[wasm_bindgen(js_name = verifySignature)]
+pub fn verify_signature(
+    public_key_bytes: &[u8],
+    signature: &WasmSignature,
+    message: &str,
+) -> Result<bool, JsValue> {
+    use iris_ztd::{Belt, Hashable, NounEncode};
+    if public_key_bytes.len() != 97 {
+        return Err(JsValue::from_str("Public key must be 97 bytes"));
+    }
+    let mut pub_bytes = [0u8; 97];
+    pub_bytes.copy_from_slice(public_key_bytes);
+    let public_key = PublicKey::from_be_bytes(&pub_bytes);
+    let digest = Belt::from_bytes(message.as_bytes()).to_noun().hash();
+    Ok(public_key.verify(&digest, &signature.to_internal()))
 }
