@@ -1539,6 +1539,96 @@ impl WasmRawTx {
     pub fn to_nockchain_tx(&self) -> WasmNockchainTx {
         WasmNockchainTx::from_internal(&self.internal.to_nockchain_tx())
     }
+    
+    /// Merge signatures from multiple signed transactions into one.
+    #[wasm_bindgen(js_name = mergeSignatures)]
+    pub fn merge_signatures(signed_txs: js_sys::Array, threshold: u32) -> Result<WasmRawTx, JsValue> {
+        use std::collections::HashSet;
+
+        if signed_txs.length() == 0 {
+            return Err(JsValue::from_str("At least one signed transaction is required"));
+        }
+
+        if threshold == 0 {
+            return Err(JsValue::from_str("Threshold must be at least 1"));
+        }
+
+        // Parse all signed transactions
+        let mut transactions: Vec<RawTx> = Vec::new();
+        for i in 0..signed_txs.length() {
+            let tx_val = signed_txs.get(i);
+            let pb: pb::RawTransaction = serde_wasm_bindgen::from_value(tx_val)
+                .map_err(|e| JsValue::from_str(&format!("Invalid transaction at index {}: {}", i, e)))?;
+            let tx: RawTx = pb.try_into()
+                .map_err(|e| JsValue::from_str(&format!("Failed to parse transaction at index {}: {}", i, e)))?;
+            transactions.push(tx);
+        }
+
+        // Use the first transaction as base and verify all have the same ID
+        let base_tx = transactions.remove(0);
+        let expected_id = &base_tx.id;
+
+        for (i, tx) in transactions.iter().enumerate() {
+            if &tx.id != expected_id {
+                return Err(JsValue::from_str(&format!(
+                    "Transaction ID mismatch at index {}: expected {}, got {}",
+                    i + 1,
+                    expected_id,
+                    tx.id
+                )));
+            }
+        }
+
+        // Merge signatures for each spend, keeping only up to `threshold` unique signatures
+        let mut merged_spends = Vec::new();
+
+        for (name, base_spend) in base_tx.spends.0 {
+            let mut seen_pkhs: HashSet<String> = HashSet::new();
+            let mut all_signatures = Vec::new();
+
+            // Collect signatures from base transaction
+            for (pkh, pubkey, sig) in &base_spend.witness.pkh_signature.0 {
+                let pkh_str = pkh.to_string();
+                if !seen_pkhs.contains(&pkh_str) && all_signatures.len() < threshold as usize {
+                    seen_pkhs.insert(pkh_str);
+                    all_signatures.push((pkh.clone(), pubkey.clone(), sig.clone()));
+                }
+            }
+
+            // Collect signatures from other transactions (up to threshold)
+            for other_tx in &transactions {
+                if all_signatures.len() >= threshold as usize {
+                    break; // We have enough signatures
+                }
+
+                if let Some((_, other_spend)) = other_tx.spends.0.iter().find(|(n, _)| n == &name) {
+                    for (pkh, pubkey, sig) in &other_spend.witness.pkh_signature.0 {
+                        if all_signatures.len() >= threshold as usize {
+                            break;
+                        }
+                        let pkh_str = pkh.to_string();
+                        if !seen_pkhs.contains(&pkh_str) {
+                            seen_pkhs.insert(pkh_str);
+                            all_signatures.push((pkh.clone(), pubkey.clone(), sig.clone()));
+                        }
+                    }
+                }
+            }
+
+            // Create merged spend with combined signatures
+            let mut merged_spend = base_spend.clone();
+            merged_spend.witness.pkh_signature = iris_nockchain_types::tx::PkhSignature(all_signatures);
+            merged_spends.push((name, merged_spend));
+        }
+
+        let merged_tx = RawTx {
+            version: base_tx.version,
+            id: base_tx.id,
+            spends: iris_nockchain_types::tx::Spends(merged_spends),
+        };
+
+        Ok(WasmRawTx::from_internal(&merged_tx))
+    }
 }
 
 #[wasm_bindgen(js_name = NockchainTx)]
