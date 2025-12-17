@@ -1535,6 +1535,15 @@ impl WasmRawTx {
             .collect()
     }
 
+    /// Recalculate the transaction ID from (version, spends).
+    /// This is useful after merging signatures, since the stored ID may be stale.
+    /// Returns the freshly computed ID as a Digest.
+    #[wasm_bindgen(js_name = recalcId)]
+    pub fn recalc_id(&self) -> WasmDigest {
+        let computed_id = (&self.internal.version, &self.internal.spends).hash();
+        WasmDigest::from_internal(&computed_id)
+    }
+
     #[wasm_bindgen(js_name = toNockchainTx)]
     pub fn to_nockchain_tx(&self) -> WasmNockchainTx {
         WasmNockchainTx::from_internal(&self.internal.to_nockchain_tx())
