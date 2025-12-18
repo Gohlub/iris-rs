@@ -1630,10 +1630,16 @@ impl WasmRawTx {
             merged_spends.push((name, merged_spend));
         }
 
+        // Create merged transaction with combined signatures
+        let merged_spends = iris_nockchain_types::tx::Spends(merged_spends);
+        // The witness data has changed (new signatures added), so the transaction hash
+        // must be recomputed: ID = hash(version, spends), and spends include witness data.
+        let tx_id = (&base_tx.version, &merged_spends).hash();
+        
         let merged_tx = RawTx {
             version: base_tx.version,
-            id: base_tx.id,
-            spends: iris_nockchain_types::tx::Spends(merged_spends),
+            id: tx_id,
+            spends: merged_spends,
         };
 
         Ok(WasmRawTx::from_internal(&merged_tx))
